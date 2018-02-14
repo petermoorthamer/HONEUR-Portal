@@ -1,3 +1,5 @@
 .idea/
 .metadata/
 *.iml
+.DS_Store
+target/
