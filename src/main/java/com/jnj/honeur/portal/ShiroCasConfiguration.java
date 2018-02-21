@@ -1,21 +1,31 @@
 package com.jnj.honeur.portal;
 
+import com.jnj.honeur.shiro.ShiroCasLogoutHandler;
+import io.buji.pac4j.filter.CallbackFilter;
+import io.buji.pac4j.filter.LogoutFilter;
+import io.buji.pac4j.filter.SecurityFilter;
 import io.buji.pac4j.realm.Pac4jRealm;
-import org.apache.shiro.cache.MemoryConstrainedCacheManager;
-import org.apache.shiro.cas.CasFilter;
-import org.apache.shiro.cas.CasRealm;
-import org.apache.shiro.cas.CasSubjectFactory;
-import org.apache.shiro.spring.LifecycleBeanPostProcessor;
+import org.apache.shiro.authz.AuthorizationException;
+import org.apache.shiro.mgt.SecurityManager;
+import org.apache.shiro.realm.Realm;
+import org.apache.shiro.spring.config.web.autoconfigure.ShiroWebAutoConfiguration;
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
-import org.apache.shiro.web.filter.authc.LogoutFilter;
-import org.apache.shiro.web.mgt.DefaultWebSecurityManager;
+import org.apache.shiro.spring.web.config.DefaultShiroFilterChainDefinition;
+import org.apache.shiro.spring.web.config.ShiroFilterChainDefinition;
+import org.pac4j.cas.client.CasClient;
+import org.pac4j.cas.config.CasConfiguration;
+import org.pac4j.cas.config.CasProtocol;
+import org.pac4j.core.config.Config;
+import org.pac4j.core.matching.Matcher;
+import org.pac4j.core.matching.PathMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.filter.DelegatingFilterProxy;
+import org.springframework.http.HttpStatus;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 import javax.servlet.Filter;
 import java.util.HashMap;
@@ -23,98 +33,151 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Configuration
-public class ShiroCasConfiguration {
+public class ShiroCasConfiguration extends ShiroWebAutoConfiguration {
 
-    private static Logger log = LoggerFactory.getLogger(PortalApplication.class);
+    private static Logger log = LoggerFactory.getLogger(ShiroCasConfiguration.class);
 
-    private static final String casFilterUrlPattern = "/shiro-cas";
+    @ExceptionHandler(AuthorizationException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public String handleException(AuthorizationException e, Model model) {
+
+        // you could return a 404 here instead (this is how github handles 403, so the user does NOT know there is a
+        // resource at that location)
+        log.warn("AuthorizationException was thrown", e);
+
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("status", HttpStatus.FORBIDDEN.value());
+        map.put("message", "No message available");
+        model.addAttribute("errors", map);
+
+        return "error";
+    }
+
 
     @Bean
-    public Pac4jRealm realm() {
-        Pac4jRealm realm = new Pac4jRealm();
-        realm.getRolePermissionResolver();
-        return realm;
+    public Realm realm() {
+        return new Pac4jRealm();
     }
 
     @Bean
-    public FilterRegistrationBean filterRegistrationBean() {
-        FilterRegistrationBean filterRegistration = new FilterRegistrationBean();
-        filterRegistration.setFilter(new DelegatingFilterProxy("shiroFilter"));
-        filterRegistration.addInitParameter("targetFilterLifecycle", "true");
-        filterRegistration.setEnabled(true);
-        filterRegistration.addUrlPatterns("/*");
-        return filterRegistration;
+    public ShiroFilterFactoryBean shiroFilterFactoryBean(SecurityManager securityManager, Config config, ShiroFilterChainDefinition shiroFilterChainDefinition) {
+        ShiroFilterFactoryBean filterFactoryBean = new ShiroFilterFactoryBean();
+
+        filterFactoryBean.setLoginUrl("/protected/index.html");
+        filterFactoryBean.setSuccessUrl("/protected/index.html");
+        filterFactoryBean.setUnauthorizedUrl("/error/error401.html");
+
+        filterFactoryBean.setSecurityManager(securityManager);
+
+
+        Map<String,Filter> filterMap = new LinkedHashMap<>();
+        //filterMap.put("casFilter", casSecurityFilter(config));
+        //filterMap.put("callbackFilter", callbackFilter(config));
+
+        filterFactoryBean.getFilters().put("callbackFilter", callbackFilter(config));
+        filterFactoryBean.getFilters().put("logout", logoutFilter(config));
+
+        //filterFactoryBean.setFilters(filterMap);
+        filterFactoryBean.setFilterChainDefinitionMap(shiroFilterChainDefinition.getFilterChainMap());
+
+        return filterFactoryBean;
     }
 
-    @Bean(name = "lifecycleBeanPostProcessor")
-    public LifecycleBeanPostProcessor getLifecycleBeanPostProcessor() {
-        return new LifecycleBeanPostProcessor();
+    @Bean
+    @Override
+    public ShiroFilterChainDefinition shiroFilterChainDefinition() {
+        DefaultShiroFilterChainDefinition chainDefinition = new DefaultShiroFilterChainDefinition();
+        //chainDefinition.addPathDefinition("/cas", "authc");
+        chainDefinition.addPathDefinition("/protected/index.html", "authc"); // need to accept POSTs from the login form
+        chainDefinition.addPathDefinition("/logout", "logout");
+        //chainDefinition.addPathDefinition("/hello", "authc");
+        chainDefinition.addPathDefinition("/callback", "callbackFilter");
+        chainDefinition.addPathDefinition("/protected/**", "authc");
+        chainDefinition.addPathDefinition("/portal", "authc");
+        chainDefinition.addPathDefinition("/public/**", "anon");
+        chainDefinition.addPathDefinition("/js/**", "anon");
+        chainDefinition.addPathDefinition("/css/**", "anon");
+        chainDefinition.addPathDefinition("/error/**", "anon");
+        chainDefinition.addPathDefinition("/img/**", "anon");
+        chainDefinition.addPathDefinition("/fonts/**", "anon");
+        chainDefinition.addPathDefinition("/**", "anon");
+
+        return chainDefinition;
     }
 
-    @Bean(name = "securityManager")
-    public DefaultWebSecurityManager getDefaultWebSecurityManager(@Value("${shiro.cas}") String casServerUrlPrefix,
-                                                                  @Value("${shiro.server}") String shiroServerUrlPrefix) {
-        DefaultWebSecurityManager securityManager = new DefaultWebSecurityManager();
-        CasRealm casRealm = new CasRealm();
-        casRealm.setDefaultRoles("ROLE_ADMIN");
-        casRealm.setCasServerUrlPrefix(casServerUrlPrefix);
-        casRealm.setCasService(shiroServerUrlPrefix + casFilterUrlPattern);
-        securityManager.setRealm(casRealm);
-        securityManager.setCacheManager(new MemoryConstrainedCacheManager());
-        securityManager.setSubjectFactory(new CasSubjectFactory());
-        return securityManager;
+    @Bean
+    public ShiroCasLogoutHandler casLogoutHandler() {
+        return new ShiroCasLogoutHandler();
     }
 
-    private void loadShiroFilterChain(ShiroFilterFactoryBean shiroFilterFactoryBean) {
-        Map<String, String> filterChainDefinitionMap = new LinkedHashMap<>();
-
-        filterChainDefinitionMap.put(casFilterUrlPattern, "casFilter");
-        filterChainDefinitionMap.put("/login", "anon");
-        filterChainDefinitionMap.put("/logout", "logout");
-        filterChainDefinitionMap.put("/css/**", "anon");
-        filterChainDefinitionMap.put("/error/**", "anon");
-        filterChainDefinitionMap.put("/img/**", "anon");
-        filterChainDefinitionMap.put("/fonts/**", "anon");
-        filterChainDefinitionMap.put("/js/**", "anon");
-        filterChainDefinitionMap.put("/public/**", "anon");// You can add static file directories that do not need to be intercepted
-        filterChainDefinitionMap.put("/protected/**", "authc");
-        filterChainDefinitionMap.put("/portal", "authc");
-        filterChainDefinitionMap.put("/**", "anon");
-        shiroFilterFactoryBean.setFilterChainDefinitionMap(filterChainDefinitionMap);
+    @Bean
+    public CasConfiguration casConfiguration() {
+        CasConfiguration casConfig = new CasConfiguration();
+        casConfig.setLoginUrl("https://localhost:8443/cas/login");
+        casConfig.setProtocol(CasProtocol.CAS30);
+        casConfig.setLogoutHandler(casLogoutHandler());
+        casConfig.setRenew(false);
+        return casConfig;
     }
 
-    /**
-     * CAS Filter
-     */
-    @Bean(name = "casFilter")
-    public CasFilter getCasFilter(@Value("${shiro.cas}") String casServerUrlPrefix,
-                                  @Value("${shiro.server}") String shiroServerUrlPrefix) {
-        CasFilter casFilter = new CasFilter();
-        casFilter.setName("casFilter");
-        casFilter.setEnabled(true);
-        String loginUrl = casServerUrlPrefix + "/login?service=" + shiroServerUrlPrefix + casFilterUrlPattern;
-        casFilter.setFailureUrl(loginUrl);
-        return casFilter;
+    @Bean
+    public CasClient casClient() {
+        CasClient casClient = new CasClient(casConfiguration());
+        casClient.setName("CasClient");
+        casClient.setIncludeClientNameInCallbackUrl(true);
+        return casClient;
     }
 
-    @Bean(name = "shiroFilter")
-    public ShiroFilterFactoryBean getShiroFilterFactoryBean(DefaultWebSecurityManager securityManager,
-                                                            CasFilter casFilter,
-                                                            @Value("${shiro.cas}") String casServerUrlPrefix,
-                                                            @Value("${shiro.server}") String shiroServerUrlPrefix) {
-        ShiroFilterFactoryBean shiroFilterFactoryBean = new ShiroFilterFactoryBean();
-        shiroFilterFactoryBean.setSecurityManager(securityManager);
-        String loginUrl = casServerUrlPrefix + "/login?service=" + shiroServerUrlPrefix + casFilterUrlPattern;
-        shiroFilterFactoryBean.setLoginUrl(loginUrl);
-        shiroFilterFactoryBean.setSuccessUrl("/");
-        Map<String, Filter> filters = new HashMap<>();
-        filters.put("casFilter", casFilter);
+    @Bean
+    public String callBackUrl() {
+        return "http://localhost:8081/callback";
+    }
+
+    @Bean
+    public Config pack4jConfig() {
+        Config config = new Config(callBackUrl(), casClient());
+        config.addMatcher("excludedPath", excludedPathMatcher());
+        return config;
+    }
+
+    public Matcher excludedPathMatcher() {
+        return new PathMatcher()
+                .excludeRegex("^/js/.*$")
+                .excludeRegex("^/css/.*$")
+                .excludeRegex("^/img/.*$")
+                .excludeRegex("^/fonts/.*$")
+                .excludeRegex("^/error/.*$")
+                .excludePath("/index.html");
+    }
+
+    public LogoutFilter logoutFilter(Config pack4jConfig) {
         LogoutFilter logoutFilter = new LogoutFilter();
-        logoutFilter.setRedirectUrl(casServerUrlPrefix + "/logout?service=" + shiroServerUrlPrefix);
-        filters.put("logout", logoutFilter);
-        shiroFilterFactoryBean.setFilters(filters);
-
-        loadShiroFilterChain(shiroFilterFactoryBean);
-        return shiroFilterFactoryBean;
+        logoutFilter.setCentralLogout(true);
+        logoutFilter.setLocalLogout(true);
+        logoutFilter.setConfig(pack4jConfig);
+        logoutFilter.setDefaultUrl("/index.html");
+        return logoutFilter;
     }
+
+    @Bean
+    public SecurityFilter casSecurityFilter(Config pack4jConfig) {
+        SecurityFilter securityFilter = new SecurityFilter();
+        securityFilter.setConfig(pack4jConfig);
+        securityFilter.setClients("CasClient");
+        securityFilter.setMatchers("excludedPath");
+        return securityFilter;
+    }
+
+    public CallbackFilter callbackFilter(Config pack4jConfig) {
+        CallbackFilter callbackFilter = new CallbackFilter();
+        callbackFilter.setConfig(pack4jConfig);
+        callbackFilter.setMultiProfile(false);
+        callbackFilter.setDefaultUrl("/index.html");
+        return callbackFilter;
+    }
+
+    /*@Bean
+    protected CacheManager cacheManager() {
+        return new MemoryConstrainedCacheManager();
+    }*/
 }
