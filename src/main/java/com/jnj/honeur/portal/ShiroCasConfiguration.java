@@ -1,6 +1,7 @@
 package com.jnj.honeur.portal;
 
-import com.jnj.honeur.shiro.ShiroCasLogoutHandler;
+import com.jnj.honeur.security.CasAuthorizationGenerator;
+import com.jnj.honeur.security.ShiroCasLogoutHandler;
 import io.buji.pac4j.filter.CallbackFilter;
 import io.buji.pac4j.filter.LogoutFilter;
 import io.buji.pac4j.filter.SecurityFilter;
@@ -27,10 +28,13 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-import javax.servlet.Filter;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
+
+/**
+ * Spring configuration for Apache Shiro + CAS
+ * @author Peter Moorthamer
+ */
 
 @Configuration
 public class ShiroCasConfiguration extends ShiroWebAutoConfiguration {
@@ -53,7 +57,6 @@ public class ShiroCasConfiguration extends ShiroWebAutoConfiguration {
         return "error";
     }
 
-
     @Bean
     public Realm realm() {
         return new Pac4jRealm();
@@ -68,11 +71,6 @@ public class ShiroCasConfiguration extends ShiroWebAutoConfiguration {
         filterFactoryBean.setUnauthorizedUrl("/error/error401.html");
 
         filterFactoryBean.setSecurityManager(securityManager);
-
-
-        Map<String,Filter> filterMap = new LinkedHashMap<>();
-        //filterMap.put("casFilter", casSecurityFilter(config));
-        //filterMap.put("callbackFilter", callbackFilter(config));
 
         filterFactoryBean.getFilters().put("callbackFilter", callbackFilter(config));
         filterFactoryBean.getFilters().put("logout", logoutFilter(config));
@@ -125,6 +123,7 @@ public class ShiroCasConfiguration extends ShiroWebAutoConfiguration {
         CasClient casClient = new CasClient(casConfiguration());
         casClient.setName("CasClient");
         casClient.setIncludeClientNameInCallbackUrl(true);
+        casClient.setAuthorizationGenerator(new CasAuthorizationGenerator<>());
         return casClient;
     }
 
@@ -140,7 +139,7 @@ public class ShiroCasConfiguration extends ShiroWebAutoConfiguration {
         return config;
     }
 
-    public Matcher excludedPathMatcher() {
+    private Matcher excludedPathMatcher() {
         return new PathMatcher()
                 .excludeRegex("^/js/.*$")
                 .excludeRegex("^/css/.*$")
@@ -150,7 +149,7 @@ public class ShiroCasConfiguration extends ShiroWebAutoConfiguration {
                 .excludePath("/index.html");
     }
 
-    public LogoutFilter logoutFilter(Config pack4jConfig) {
+    private LogoutFilter logoutFilter(Config pack4jConfig) {
         LogoutFilter logoutFilter = new LogoutFilter();
         logoutFilter.setCentralLogout(true);
         logoutFilter.setLocalLogout(true);
@@ -168,7 +167,7 @@ public class ShiroCasConfiguration extends ShiroWebAutoConfiguration {
         return securityFilter;
     }
 
-    public CallbackFilter callbackFilter(Config pack4jConfig) {
+    private CallbackFilter callbackFilter(Config pack4jConfig) {
         CallbackFilter callbackFilter = new CallbackFilter();
         callbackFilter.setConfig(pack4jConfig);
         callbackFilter.setMultiProfile(false);

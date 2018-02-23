@@ -18,17 +18,15 @@
  */
 package com.jnj.honeur.portal.controller;
 
+import io.buji.pac4j.subject.Pac4jPrincipal;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.apache.shiro.subject.Subject;
-import org.apache.shiro.util.CollectionUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.Collection;
-import java.util.Map;
 
 @Controller
 public class HelloController {
@@ -44,7 +42,8 @@ public class HelloController {
         PrincipalCollection principalCollection = subject.getPrincipals();
 
         if (principalCollection != null && !principalCollection.isEmpty()) {
-            name = principalCollection.getPrimaryPrincipal().toString();
+            Pac4jPrincipal principal = (Pac4jPrincipal) subject.getPrincipals().getPrimaryPrincipal();
+            name = principal.getName();
         }
 
         model.addAttribute("name", name);
