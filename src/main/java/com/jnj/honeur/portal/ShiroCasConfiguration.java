@@ -6,6 +6,7 @@ import io.buji.pac4j.filter.CallbackFilter;
 import io.buji.pac4j.filter.LogoutFilter;
 import io.buji.pac4j.filter.SecurityFilter;
 import io.buji.pac4j.realm.Pac4jRealm;
+import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authz.AuthorizationException;
 import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.realm.Realm;
@@ -13,6 +14,7 @@ import org.apache.shiro.spring.config.web.autoconfigure.ShiroWebAutoConfiguratio
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
 import org.apache.shiro.spring.web.config.DefaultShiroFilterChainDefinition;
 import org.apache.shiro.spring.web.config.ShiroFilterChainDefinition;
+import org.apache.shiro.subject.Subject;
 import org.pac4j.cas.client.CasClient;
 import org.pac4j.cas.config.CasConfiguration;
 import org.pac4j.cas.config.CasProtocol;
@@ -21,11 +23,13 @@ import org.pac4j.core.matching.Matcher;
 import org.pac4j.core.matching.PathMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.util.HashMap;
@@ -49,12 +53,17 @@ public class ShiroCasConfiguration extends ShiroWebAutoConfiguration {
         // resource at that location)
         log.warn("AuthorizationException was thrown", e);
 
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
         map.put("status", HttpStatus.FORBIDDEN.value());
         map.put("message", "No message available");
         model.addAttribute("errors", map);
 
         return "error";
+    }
+
+    @ModelAttribute(name = "subject")
+    public Subject subject() {
+        return SecurityUtils.getSubject();
     }
 
     @Bean
@@ -66,8 +75,8 @@ public class ShiroCasConfiguration extends ShiroWebAutoConfiguration {
     public ShiroFilterFactoryBean shiroFilterFactoryBean(SecurityManager securityManager, Config config, ShiroFilterChainDefinition shiroFilterChainDefinition) {
         ShiroFilterFactoryBean filterFactoryBean = new ShiroFilterFactoryBean();
 
-        filterFactoryBean.setLoginUrl("/protected/index.html");
-        filterFactoryBean.setSuccessUrl("/protected/index.html");
+        filterFactoryBean.setLoginUrl("/portal");
+        filterFactoryBean.setSuccessUrl("/portal");
         filterFactoryBean.setUnauthorizedUrl("/error/error401.html");
 
         filterFactoryBean.setSecurityManager(securityManager);
@@ -85,19 +94,9 @@ public class ShiroCasConfiguration extends ShiroWebAutoConfiguration {
     @Override
     public ShiroFilterChainDefinition shiroFilterChainDefinition() {
         DefaultShiroFilterChainDefinition chainDefinition = new DefaultShiroFilterChainDefinition();
-        //chainDefinition.addPathDefinition("/cas", "authc");
-        chainDefinition.addPathDefinition("/protected/index.html", "authc"); // need to accept POSTs from the login form
+        chainDefinition.addPathDefinition("/portal", "authc"); // need to accept POSTs from the login form
         chainDefinition.addPathDefinition("/logout", "logout");
-        //chainDefinition.addPathDefinition("/hello", "authc");
         chainDefinition.addPathDefinition("/callback", "callbackFilter");
-        chainDefinition.addPathDefinition("/protected/**", "authc");
-        chainDefinition.addPathDefinition("/portal", "authc");
-        chainDefinition.addPathDefinition("/public/**", "anon");
-        chainDefinition.addPathDefinition("/js/**", "anon");
-        chainDefinition.addPathDefinition("/css/**", "anon");
-        chainDefinition.addPathDefinition("/error/**", "anon");
-        chainDefinition.addPathDefinition("/img/**", "anon");
-        chainDefinition.addPathDefinition("/fonts/**", "anon");
         chainDefinition.addPathDefinition("/**", "anon");
 
         return chainDefinition;
@@ -109,32 +108,32 @@ public class ShiroCasConfiguration extends ShiroWebAutoConfiguration {
     }
 
     @Bean
-    public CasConfiguration casConfiguration() {
+    public CasConfiguration casConfiguration(@Value("${cas.loginUrl}") String casLoginUrl, ShiroCasLogoutHandler casLogoutHandler) {
         CasConfiguration casConfig = new CasConfiguration();
-        casConfig.setLoginUrl("https://localhost:8443/cas/login");
+        casConfig.setLoginUrl(casLoginUrl);
         casConfig.setProtocol(CasProtocol.CAS30);
-        casConfig.setLogoutHandler(casLogoutHandler());
+        casConfig.setLogoutHandler(casLogoutHandler);
         casConfig.setRenew(false);
         return casConfig;
     }
 
     @Bean
-    public CasClient casClient() {
-        CasClient casClient = new CasClient(casConfiguration());
+    public CasClient casClient(CasConfiguration casConfiguration) {
+        CasClient casClient = new CasClient(casConfiguration);
         casClient.setName("CasClient");
         casClient.setIncludeClientNameInCallbackUrl(true);
         casClient.setAuthorizationGenerator(new CasAuthorizationGenerator<>());
         return casClient;
     }
 
-    @Bean
-    public String callBackUrl() {
-        return "http://localhost:8081/callback";
+    @Bean(name="callBackUrl")
+    public String callBackUrl(@Value("${cas.callbackUrl}") String callbackUrl) {
+        return callbackUrl;
     }
 
     @Bean
-    public Config pack4jConfig() {
-        Config config = new Config(callBackUrl(), casClient());
+    public Config pack4jConfig(CasClient casClient, String callBackUrl) {
+        Config config = new Config(callBackUrl, casClient);
         config.addMatcher("excludedPath", excludedPathMatcher());
         return config;
     }
@@ -146,6 +145,7 @@ public class ShiroCasConfiguration extends ShiroWebAutoConfiguration {
                 .excludeRegex("^/img/.*$")
                 .excludeRegex("^/fonts/.*$")
                 .excludeRegex("^/error/.*$")
+                .excludePath("/")
                 .excludePath("/index.html");
     }
 
@@ -171,7 +171,7 @@ public class ShiroCasConfiguration extends ShiroWebAutoConfiguration {
         CallbackFilter callbackFilter = new CallbackFilter();
         callbackFilter.setConfig(pack4jConfig);
         callbackFilter.setMultiProfile(false);
-        callbackFilter.setDefaultUrl("/index.html");
+        callbackFilter.setDefaultUrl("/portal");
         return callbackFilter;
     }
 

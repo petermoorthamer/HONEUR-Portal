@@ -197,6 +197,11 @@ ul, ol {
     margin: 20px auto 0px;
 }
 
+.text-right {
+    margin: 20px auto 0px;
+    float: right;
+}
+
 /* --  Input  -- */
 
 input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="date"], input[type="url"], input[type="tel"], textarea {

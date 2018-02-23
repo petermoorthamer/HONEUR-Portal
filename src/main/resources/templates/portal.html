@@ -1,20 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 
 <head>
 
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
+    <meta name="description" content=""/>
+    <meta name="author" content=""/>
 
     <title>HONEUR - Haematology Outcomes Network Europe - Portal</title>
 
     <!-- Bootstrap core CSS -->
-    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap.min.css" rel="stylesheet"/>
     <!-- Custom styles for this template -->
-    <link href="/css/round-about.css" rel="stylesheet">
-    <link href="/css/style.css" rel="stylesheet">
+    <link href="/css/round-about.css" rel="stylesheet"/>
+    <link href="/css/style.css" rel="stylesheet"/>
 
     <!-- Bootstrap core JavaScript -->
     <script src="/js/jquery.min.js"></script>
@@ -28,6 +28,10 @@
 <nav class="navbar navbar-expand-lg fixed-top">
     <div class="container">
         <small><img src="/img/HONEUR_logo.png" alt="HONEUR" width="200"/> Haematology Outcomes Network Europe</small>
+        <small class="text-right">
+            <p th:text="'Welcome, ' + ${subjectName}"></p>
+            <a href="/logout" th:if="${subject.authenticated}">Logout</a>
+        </small>
     </div>
 </nav>
 
@@ -40,41 +44,40 @@
             <h2 class="my-4"></h2>
         </div-->
         <div class="col-lg-4 col-sm-6 text-center mb-4">
-            <img class="rounded-circle img-fluid d-block mx-auto" src="/img/dataCatalogue1.png" alt="data catalogue">
+            <img class="rounded-circle img-fluid d-block mx-auto" src="/img/dataCatalogue1.png" alt="data catalogue"/>
             <h3>
                 Data Catalogue
             </h3>
             <p>Understanding the data</p>
         </div>
         <div class="col-lg-4 col-sm-6 text-center mb-4">
-            <img class="rounded-circle img-fluid d-block mx-auto" src="/img/studyCatalogue1.png" alt="study catalogue">
+            <img class="rounded-circle img-fluid d-block mx-auto" src="/img/studyCatalogue1.png" alt="study catalogue"/>
             <h3>
                 Study Catalogue
             </h3>
             <p>Understanding the studies</p>
         </div>
         <div class="col-lg-4 col-sm-6 text-center mb-4">
-            <a href="https://localhost:8443/WebAPI/user/oauth/cas" target="_blank">
-                <img class="rounded-circle img-fluid d-block mx-auto" src="/img/atlas.png" alt="atlas">
+            <a href="/atlas" target="_blank">
+                <img class="rounded-circle img-fluid d-block mx-auto" src="/img/atlas.png" alt="atlas"/>
             </a>
             <h3>
                 Atlas
             </h3>
             <p>View on the data</p>
-
         </div>
         <div class="col-lg-4 col-sm-6 text-center mb-4">
-            <a href="http://localhost:8082" target="_blank">
-                <img class="rounded-circle img-fluid d-block mx-auto" src="/img/zeppelin.png" alt="zeppelin notebooks">
+            <a href="/notebooks" target="_blank">
+                <img class="rounded-circle img-fluid d-block mx-auto" src="/img/zeppelin.png" alt="zeppelin notebooks"/>
             </a>
             <h3>
                 Notebooks
             </h3>
             <p>Sharing data analytics</p>
         </div>
-        <div class="col-lg-4 col-sm-6 text-center mb-4">
-            <a href="http://localhost:4200" target="_blank">
-                <img class="rounded-circle img-fluid d-block mx-auto" src="/img/userMgmt.png" alt="user mgmt">
+        <div class="col-lg-4 col-sm-6 text-center mb-4" th:if="${subjectIsAdmin}">
+            <a href="/userManagement" target="_blank">
+                <img class="rounded-circle img-fluid d-block mx-auto" src="/img/userMgmt.png" alt="user mgmt"/>
             </a>
             <h3>
                 User Management
@@ -90,35 +93,35 @@
 
     <div class="row">
         <div class="col-lg-4 col-sm-6 text-center mb-4">
-            <img class="rounded-circle img-fluid d-block mx-auto" src="/img/patientProfile2.png" alt="patient profiles">
+            <img class="rounded-circle img-fluid d-block mx-auto" src="/img/patientProfile2.png" alt="patient profiles"/>
             <h3>
                 Patient Profiles
             </h3>
             <p>Insights in patient data</p>
         </div>
         <div class="col-lg-4 col-sm-6 text-center mb-4">
-            <img class="rounded-circle img-fluid d-block mx-auto" src="/img/therapyExplorer.png" alt="therapy explorer">
+            <img class="rounded-circle img-fluid d-block mx-auto" src="/img/therapyExplorer.png" alt="therapy explorer"/>
             <h3>
                 Therapy Explorer
             </h3>
             <p>Explore different therapies</p>
         </div>
         <div class="col-lg-4 col-sm-6 text-center mb-4">
-            <img class="rounded-circle img-fluid d-block mx-auto" src="/img/geneticRiskFactors.png" alt="">
+            <img class="rounded-circle img-fluid d-block mx-auto" src="/img/geneticRiskFactors.png" alt="genetic risk factors"/>
             <h3>
                 Genetic Risk Factors
             </h3>
             <p>Insights in genetic risk factors</p>
         </div>
         <div class="col-lg-4 col-sm-6 text-center mb-4">
-            <img class="rounded-circle img-fluid d-block mx-auto" src="/img/outcomesAnalysis.png" alt="">
+            <img class="rounded-circle img-fluid d-block mx-auto" src="/img/outcomesAnalysis.png" alt="outcomes analysis"/>
             <h3>
                 Outcomes Analysis
             </h3>
             <p>Analysis of the outcomes</p>
         </div>
         <div class="col-lg-4 col-sm-6 text-center mb-4">
-            <img class="rounded-circle img-fluid d-block mx-auto" src="/img/diseaseTrajectory.jpg" alt="">
+            <img class="rounded-circle img-fluid d-block mx-auto" src="/img/diseaseTrajectory.jpg" alt="disease trajectory"/>
             <h3>
                 Disease trajectory
             </h3>
