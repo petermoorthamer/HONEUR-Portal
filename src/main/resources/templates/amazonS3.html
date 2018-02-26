@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
+    <meta name="description" content=""/>
+    <meta name="author" content=""/>
+
+    <title>HONEUR - Amazon S3</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/css/bootstrap.min.css" rel="stylesheet"/>
+    <!-- Custom styles for this template -->
+    <link href="/css/round-about.css" rel="stylesheet"/>
+    <link href="/css/style.css" rel="stylesheet"/>
+
+    <!-- Bootstrap core JavaScript -->
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/bootstrap.bundle.min.js"></script>
+
+</head>
+
+<body>
+
+<nav class="navbar navbar-expand-lg fixed-top">
+    <div class="container">
+        <small><img src="/img/HONEUR_logo.png" alt="HONEUR" width="200"/> Haematology Outcomes Network Europe</small>
+        <small class="text-right">
+            <span th:text="'Welcome, ' + ${subjectName}"></span>
+        </small>
+    </div>
+</nav>
+
+<!-- Page Content -->
+<div class="container">
+
+    <h3>Buckets with read access</h3>
+    <table th:object="${readBucketList}" id="readBucketTable">
+        <tr th:each="readBucket :${readBucketList}">
+            <td>
+                <a th:href="@{'/amazonS3bucket/' + ${readBucket}}" th:text="${readBucket}"></a>
+            </td>
+        </tr>
+    </table>
+
+    <p><br/></p>
+
+    <h3>Buckets with write access</h3>
+    <table th:object="${writeBucketList}" id="writeBucketTable" >
+        <tr th:each="writeBucket :${writeBucketList}">
+            <td>
+                <a th:href="@{'/amazonS3bucket/' + ${writeBucket}}" th:text="${writeBucket}"></a>
+            </td>
+        </tr>
+    </table>
+
+    <p><br/></p>
+    <p><br/></p>
+    <p><br/></p>
+    <p><br/></p>
+    <p><br/></p>
+
+    <p><a href="/portal">Back</a></p>
+
+</div>
+
+<p><br/></p>
+
+<!-- Footer -->
+<footer class="py-5">
+    <div class="container">
+        <p class="text-center">Copyright &copy; HONEUR 2018</p>
+    </div>
+    <!-- /.container -->
+</footer>
+
+</body>
+</html>

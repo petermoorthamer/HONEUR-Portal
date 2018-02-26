@@ -34,6 +34,11 @@
 			<version>1.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
+			<groupId>com.jnj.honeur</groupId>
+			<artifactId>aws-s3</artifactId>
+			<version>1.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
 			<groupId>io.buji</groupId>
 			<artifactId>buji-pac4j</artifactId>
 			<version>${bujiVersion}</version>
@@ -73,6 +78,12 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<version>5.0.0</version>
+            <scope>test</scope>
 		</dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

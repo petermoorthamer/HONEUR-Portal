@@ -1,5 +1,6 @@
 package com.jnj.honeur.portal.controller;
 
+import com.jnj.honeur.security.SecurityUtils2;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authz.annotation.RequiresAuthentication;
 import org.apache.shiro.authz.annotation.RequiresRoles;
@@ -10,7 +11,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
-import java.security.Principal;
 
 @Controller
 public class PortalNavigationController {
@@ -29,17 +29,9 @@ public class PortalNavigationController {
     public String home(HttpServletRequest request, Model model) {
         final Subject subject = SecurityUtils.getSubject();
         model.addAttribute("subject", subject);
-        model.addAttribute("subjectName", getName(subject));
+        model.addAttribute("subjectName", SecurityUtils2.getSubjectName(subject));
         model.addAttribute("subjectIsAdmin", subject.hasRole(ROLE_ADMIN));
         return "portal";
-    }
-
-    private String getName(Subject subject) {
-        if (subject.getPrincipal() != null) {
-            Principal principal = (Principal)subject.getPrincipal();
-            return principal.getName();
-        }
-        return null;
     }
 
     @RequiresAuthentication
